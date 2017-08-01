@@ -127,7 +127,7 @@ if __name__ == '__main__':
 
     roller = LunchRoll('candidates.yaml', _args)
     if _args.add_name or _args.add_qty:
-        if not (_args.add_qty and _args.add_qty):
+        if not (_args.add_name and _args.add_qty):
             sys.exit('Please provide both the candidate name and its initial quantity to add it.')
         roller.add(_args.add_name, _args.add_qty)
     if _args.view:
