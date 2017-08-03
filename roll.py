@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os
 
 from datetime import date
 from shutil import copyfile
@@ -12,7 +13,7 @@ from numpy.random import choice
 
 
 class LunchRoll(object):
-    def __init__(self, candidates, args):
+    def __init__(self, candidates):
         self._candidates_yaml = candidates
         with open(self._candidates_yaml, 'rb') as f:
             self._candidates_picked_records = yaml.load(f)
@@ -116,16 +117,21 @@ class LunchRoll(object):
 if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
-    parser.add_argument('-r', action='store_true', dest='revert',
-                        help='revert to last candidate snapshot')
-    parser.add_argument('-a', action='append', dest='amend_candidates',
-                        help='amend missing rollings')
-    parser.add_argument('-v', dest='view', action='store_true')
-    parser.add_argument('--add', dest='add_name', action='append')
-    parser.add_argument('--qty', dest='add_qty', action='append')
+    parser.add_argument('-r', action='store_true', dest='revert', help='revert to last candidate snapshot')
+    parser.add_argument('-a', action='append', dest='amend_candidates', help='amend missing rollings')
+    parser.add_argument('-v', dest='view', action='store_true', help='view current candidate records')
+    parser.add_argument('--add', dest='add_name', action='append',
+                        help='(together with add_qty) name of the new candidate being added')
+    parser.add_argument('--qty', dest='add_qty', action='append',
+                        help='(together with add_name) initial quantity of the new candidate being added')
+    parser.add_argument('-c', '--candidates', dest='candidates', default='candidates.yaml',
+                        help='path to the candidate records yaml file')
     _args = parser.parse_args()
 
-    roller = LunchRoll('candidates.yaml', _args)
+    candidate_file = os.path.abspath(_args.candidates)
+    if not os.path.isfile(candidate_file):
+        sys.exit('Candidates.yaml not found. Exiting.')
+    roller = LunchRoll(candidate_file)
     if _args.add_name or _args.add_qty:
         if not (_args.add_name and _args.add_qty):
             sys.exit('Please provide both the candidate name and its initial quantity to add it.')
@@ -135,7 +141,7 @@ if __name__ == '__main__':
     if _args.revert:
         roller.revert()
     if _args.amend_candidates:
-            roller.amend(_args.amend_candidates)
+        roller.amend(_args.amend_candidates)
     if (not _args.view) and (not _args.revert) and (not _args.amend_candidates) and (not _args.add_name):
         print roller.roll()
     print 'Candidates: reserved all rights to argue with the results.'
