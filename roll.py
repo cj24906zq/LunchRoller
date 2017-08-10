@@ -17,10 +17,23 @@ class LunchRoll(object):
         self._candidates_yaml = candidates
         with open(self._candidates_yaml, 'rb') as f:
             self._candidates_picked_records = yaml.load(f)
+        if not self._record_check():
+            print 'WARNING: Candidate records incomplete. Continue? [y/N]'
+            to_continue = {'y': True, 'n': False}.get(raw_input().lower(), None) or False
+            if not to_continue:
+                sys.exit('Exiting..')
+
         if date.today().isoweekday() == 1:
             print 'Happy Monday! Initiating candidate records..'
             self._candidates_picked_records = {k: 0 for k in self._candidates_picked_records.iterkeys()}
             self._dump()
+
+    def _record_check(self):
+        required_record_count = date.today().isoweekday()
+        record_count = sum(count for count in self._candidates_picked_records.itervalues())
+        if required_record_count != record_count:
+            return False
+        return True
 
     def _record(self, pick):
         self._candidates_picked_records[pick] += 1
