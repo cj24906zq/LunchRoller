@@ -13,6 +13,17 @@ from numpy.random import choice
 
 
 class LunchRoll(object):
+
+    abbr_switcher = {
+            'Mc': '麦当劳',
+            'cp': '土鸡星球',
+            'MC': '市场创意',
+            'p': '熊猫',
+            'js': '就是沙拉',
+            'cb': '转角烘焙店',
+            'ch': '漆坡里',
+        }
+
     def __init__(self, candidates):
         self._candidates_yaml = candidates
         with open(self._candidates_yaml, 'rb') as f:
@@ -23,19 +34,15 @@ class LunchRoll(object):
             if not to_continue:
                 sys.exit('Exiting..')
 
-        if date.today().isoweekday() == 1:
-            print 'Happy Monday! Initiating candidate records..'
-            self._candidates_picked_records = {k: 0 for k in self._candidates_picked_records.iterkeys()}
-            self._dump()
-
     def _record_check(self):
         required_record_count = date.today().isoweekday()
-        if required_record_count == 1:
-            required_record_count = 4
         record_count = sum(count for count in self._candidates_picked_records.itervalues())
-        if required_record_count != record_count:
-            return False
-        return True
+        if required_record_count == 1:
+            if record_count in [0, 1, 4]:
+                return True
+        if required_record_count == record_count:
+            return True
+        return False
 
     def _record(self, pick):
         self._candidates_picked_records[pick] += 1
@@ -63,6 +70,11 @@ class LunchRoll(object):
                     f.write('{}: {}\n'.format(candidate.encode('utf-8'), picked_times))
 
     def roll(self):
+        if date.today().isoweekday() == 1:
+            print 'Happy Monday! Initiating candidate records..'
+            self._candidates_picked_records = {k: 0 for k in self._candidates_picked_records.iterkeys()}
+            self._dump()
+
         probability = []
         num_candidates = len(self._candidates_picked_records)
         for candidate, picked_time in sorted(self._candidates_picked_records.iteritems()):
@@ -118,15 +130,13 @@ class LunchRoll(object):
 
     @staticmethod
     def revert_abbreviations(abbr):
-        return {
-            'Mc': '麦当劳',
-            'cp': '土鸡星球',
-            'MC': '市场创意',
-            'p': '熊猫',
-            'js': '就是沙拉',
-            'cb': '转角烘焙店',
-            'ch': '漆坡里',
-        }.get(abbr)
+        return LunchRoll.abbr_switcher.get(abbr)
+
+    @staticmethod
+    def print_switcher():
+        print 'Abbreviations for candidates:'
+        for abbr, candidate in LunchRoll.abbr_switcher.iteritems():
+            print '\t{}:\t{}'.format(abbr, candidate)
 
 
 if __name__ == '__main__':
@@ -135,6 +145,8 @@ if __name__ == '__main__':
     parser.add_argument('-r', action='store_true', dest='revert', help='revert to last candidate snapshot')
     parser.add_argument('-a', action='append', dest='amend_candidates', help='amend missing rollings')
     parser.add_argument('-v', dest='view', action='store_true', help='view current candidate records')
+    parser.add_argument('-s', '--switcher', dest='switcher', action='store_true',
+                        help='show candidate abbreviation switcher')
     parser.add_argument('--add', dest='add_name', action='append',
                         help='(together with add_qty) name of the new candidate being added')
     parser.add_argument('--qty', dest='add_qty', action='append',
@@ -153,10 +165,13 @@ if __name__ == '__main__':
         roller.add(_args.add_name, _args.add_qty)
     if _args.view:
         roller.view()
+    if _args.switcher:
+        roller.print_switcher()
     if _args.revert:
         roller.revert()
     if _args.amend_candidates:
         roller.amend(_args.amend_candidates)
-    if (not _args.view) and (not _args.revert) and (not _args.amend_candidates) and (not _args.add_name):
+    if (not _args.view) and (not _args.revert) and (not _args.amend_candidates) and \
+            (not _args.add_name) and (not _args.switcher):
         print roller.roll()
     print 'Candidates: reserved all rights to argue with the results.'
