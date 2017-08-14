@@ -30,6 +30,8 @@ class LunchRoll(object):
 
     def _record_check(self):
         required_record_count = date.today().isoweekday()
+        if required_record_count == 1:
+            required_record_count = 4
         record_count = sum(count for count in self._candidates_picked_records.itervalues())
         if required_record_count != record_count:
             return False
