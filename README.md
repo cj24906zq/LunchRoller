@@ -28,7 +28,8 @@ vim roll
 并输入
 ```bash
 #! /bin/bash
-python /PATH/TO/GIT/REPO/LunchRoller/roll.py $*
+cd /PATH/TO/GIT/REPO/LunchRoller/
+python roll.py $*
 ```
 其中`/PATH/TO/GIT/REPO/`需替换成对应地址，从而可以实现在Console中直接运行`roll -arguments`  
   

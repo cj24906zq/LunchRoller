@@ -40,7 +40,7 @@ class LunchRoll(object):
         if required_record_count == 1:
             if record_count in [0, 1, 4]:
                 return True
-        if required_record_count == record_count:
+        if required_record_count == record_count + 1:
             return True
         return False
 
