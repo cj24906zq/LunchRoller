@@ -24,7 +24,7 @@ class LunchRoll(object):
             'ch': '漆坡里',
         }
 
-    def __init__(self, candidates):
+    def __init__(self, candidates, abbr):
         self._candidates_yaml = candidates
         with open(self._candidates_yaml, 'rb') as f:
             self._candidates_picked_records = yaml.load(f)
@@ -33,6 +33,9 @@ class LunchRoll(object):
             to_continue = {'y': True, 'n': False}.get(raw_input().lower(), None) or False
             if not to_continue:
                 sys.exit('Exiting..')
+        self._abbr_switcher_path = abbr
+        with open(self._abbr_switcher_path, 'rb') as f:
+            self._abbr_switcher = yaml.load(f)
 
     def _record_check(self):
         required_record_count = date.today().isoweekday()
@@ -40,7 +43,7 @@ class LunchRoll(object):
         if required_record_count == 1:
             if record_count in [0, 1, 4]:
                 return True
-        if required_record_count == record_count + 1:
+        if required_record_count in [record_count, record_count + 1]:
             return True
         return False
 
@@ -67,7 +70,7 @@ class LunchRoll(object):
         self._backup()
         with open(self._candidates_yaml, 'wb') as f:
             for candidate, picked_times in self._candidates_picked_records.iteritems():
-                    f.write('{}: {}\n'.format(candidate.encode('utf-8'), picked_times))
+                f.write('{}: {}\n'.format(candidate.encode('utf-8'), picked_times))
 
     def roll(self):
         if date.today().isoweekday() == 1:
@@ -102,7 +105,7 @@ class LunchRoll(object):
         self._print_candidate_records()
         to_amend_list = []
         for candidate_abbr in candidates_to_amend:
-            candidate = LunchRoll.revert_abbreviations(candidate_abbr)
+            candidate = self._revert_abbreviations(candidate_abbr)
             if candidate:
                 to_amend_list.append(candidate)
             else:
@@ -119,24 +122,26 @@ class LunchRoll(object):
         print 'Candidate records:'
         self._print_candidate_records()
 
-    def add(self, candidate_names, candidate_quantities):
+    def add(self, candidate_names, candidate_quantities, candidate_abbreviations):
         print 'The original candidate records:'
         self._print_candidate_records()
-        for candidate_name, candidate_qty in izip(candidate_names, candidate_quantities):
-            self._candidates_picked_records[candidate_name] = candidate_qty
+        for candidate_name, candidate_qty, candidate_abbr in izip(
+                candidate_names, candidate_quantities, candidate_abbreviations):
+            self._candidates_picked_records[candidate_name.decode('utf-8')] = candidate_qty
+            with open(self._abbr_switcher_path, 'a') as f:
+                f.write('{}: {}'.format(candidate_abbr, candidate_name))
         self._dump()
         print 'Records added:'
         self._print_candidate_records()
 
-    @staticmethod
-    def revert_abbreviations(abbr):
-        return LunchRoll.abbr_switcher.get(abbr)
+    def _revert_abbreviations(self, abbr):
+        return self._abbr_switcher.get(abbr)
 
-    @staticmethod
-    def print_switcher():
+    def print_switcher(self):
         print 'Abbreviations for candidates:'
-        for abbr, candidate in LunchRoll.abbr_switcher.iteritems():
-            print '\t{}:\t{}'.format(abbr, candidate)
+        with open(self._abbr_switcher_path, 'rb') as f:
+            for line in f:
+                print '\t{}'.format(line.strip())
 
 
 if __name__ == '__main__':
@@ -148,21 +153,29 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--switcher', dest='switcher', action='store_true',
                         help='show candidate abbreviation switcher')
     parser.add_argument('--add', dest='add_name', action='append',
-                        help='(together with add_qty) name of the new candidate being added')
+                        help='(together with add_qty and add_abbr) name of the new candidate being added')
     parser.add_argument('--qty', dest='add_qty', action='append',
-                        help='(together with add_name) initial quantity of the new candidate being added')
+                        help='(together with add_name and add_abbr) initial quantity of the new candidate being added')
+    parser.add_argument('--abbr', dest='add_abbr', action='append',
+                        help='(together with add_name and add_qty) abbreviation of the new candidate being added')
     parser.add_argument('-c', '--candidates', dest='candidates', default='candidates.yaml',
                         help='path to the candidate records yaml file')
+    parser.add_argument('-A', '--Abbreviation', dest='abbreviation_file', default='abbr_switcher.yaml',
+                        help='path to the abbreviation switcher yaml file')
     _args = parser.parse_args()
 
     candidate_file = os.path.abspath(_args.candidates)
     if not os.path.isfile(candidate_file):
         sys.exit('Candidates.yaml not found. Exiting.')
-    roller = LunchRoll(candidate_file)
+    abbr_switcher_file = os.path.abspath(_args.abbreviation_file)
+    if not os.path.isfile(abbr_switcher_file):
+        sys.exit('Abbr_switcher.yaml not found. Exiting.')
+
+    roller = LunchRoll(candidate_file, abbr_switcher_file)
     if _args.add_name or _args.add_qty:
-        if not (_args.add_name and _args.add_qty):
+        if not (_args.add_name and _args.add_qty and _args.add_abbr):
             sys.exit('Please provide both the candidate name and its initial quantity to add it.')
-        roller.add(_args.add_name, _args.add_qty)
+        roller.add(_args.add_name, _args.add_qty, _args.add_abbr)
     if _args.view:
         roller.view()
     if _args.switcher:
