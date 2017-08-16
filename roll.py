@@ -14,16 +14,6 @@ from numpy.random import choice
 
 class LunchRoll(object):
 
-    abbr_switcher = {
-            'Mc': '麦当劳',
-            'cp': '土鸡星球',
-            'MC': '市场创意',
-            'p': '熊猫',
-            'js': '就是沙拉',
-            'cb': '转角烘焙店',
-            'ch': '漆坡里',
-        }
-
     def __init__(self, candidates, abbr):
         self._candidates_yaml = candidates
         with open(self._candidates_yaml, 'rb') as f:
@@ -110,9 +100,9 @@ class LunchRoll(object):
                 to_amend_list.append(candidate)
             else:
                 print '{} is not a valid abbreviation. Ignored.'.format(candidate_abbr)
-        print 'Amending missing record(s): {}'.format(' '.join(to_amend_list))
+        print 'Amending missing record(s): {}'.format(' '.join(to_amend_list).encode('utf-8'))
         for candidate in to_amend_list:
-            self._record(unicode(candidate, 'utf-8'))
+            self._record(candidate)
         print 'Amended:'
         self._print_candidate_records()
 
